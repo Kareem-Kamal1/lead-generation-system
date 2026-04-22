@@ -1,0 +1,162 @@
+{
+  "name": "lead Generation system",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "YOUR_WEBHOOK_PATH",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 0],
+      "id": "ab0c9146-76b1-4d40-9469-9c78ae98808d",
+      "name": "Webhook",
+      "webhookId": "YOUR_WEBHOOK_PATH"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "lead tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.body.name }}",
+            "Email": "={{ $json.body.email }}",
+            "Phone": "={{ $json.body.phone }}",
+            "Message ": "={{ $json.body.message }}",
+            "Date": "={{ $now.format('dd/MM/yyyy HH:mm') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "Name", "displayName": "Name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true},
+            {"id": "Email", "displayName": "Email", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true},
+            {"id": "Phone", "displayName": "Phone", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true},
+            {"id": "Message ", "displayName": "Message ", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true},
+            {"id": "Date", "displayName": "Date", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false}
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [208, 0],
+      "id": "599aed73-e9a7-487f-8d65-0357b51a4ff4",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_EMAIL@gmail.com",
+        "subject": "=🔔 New Lead: {{ $json.body.name }}",
+        "emailType": "text",
+        "message": "=You have a new lead!\nName: {{ $json.body.name }} \nEmail: {{ $json.body.email }}\nPhone: {{ $json.body.phone }}\nMessage: {{ $json.body.message }}\nDate: {{ $now.format('dd/MM/yyyy HH:mm') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [688, 0],
+      "id": "3448ba4a-93c3-4ebd-b8a6-479595c5ff38",
+      "name": "Send a message",
+      "webhookId": "YOUR_WEBHOOK_PATH",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Append row in sheet').item.json.Email }}",
+        "subject": "=Hi {{ $('Webhook').first().json.body.name }}!\n\n{{ $('Code in JavaScript').first().json.ai_response }}\n\nBest regards,\nThe Team",
+        "emailType": "text",
+        "message": "=Hi !{{ $('Append row in sheet').item.json.Email }}\n\nThank you for reaching out to us. We have received your message and will get back to you within 24 hours.\n\nYour message: {{ $json.body.message }}\n\nBest regards,\nThe Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [896, 0],
+      "id": "e6de57f2-6967-4e16-8f15-7694bc67e7d3",
+      "name": "Send a message1",
+      "webhookId": "YOUR_WEBHOOK_PATH",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_GROQ_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $json['Message '] }}\"\n    }\n  ]\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [384, 0],
+      "id": "2e503e9f-559f-4698-8982-67dd2ecac3f3",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst message = response.choices[0].message.content;\n\nreturn [{\n  json: {\n    ai_response: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [528, 0],
+      "id": "2961f74d-3a21-4cbf-af81-6a86e13c80dd",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {"main": [[{"node": "Append row in sheet", "type": "main", "index": 0}]]},
+    "Append row in sheet": {"main": [[{"node": "HTTP Request", "type": "main", "index": 0}]]},
+    "Send a message": {"main": [[{"node": "Send a message1", "type": "main", "index": 0}]]},
+    "HTTP Request": {"main": [[{"node": "Code in JavaScript", "type": "main", "index": 0}]]},
+    "Code in JavaScript": {"main": [[{"node": "Send a message", "type": "main", "index": 0}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1", "binaryMode": "separate"},
+  "versionId": "88ea3a98-b4f8-4f32-8ea8-b8591d0113e3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_INSTANCE_ID"
+  },
+  "id": "pgncTuD9VhKNoKCx",
+  "tags": []
+}
