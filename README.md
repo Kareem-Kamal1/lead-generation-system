@@ -22,6 +22,9 @@ An automated lead generation system that captures leads from a web form, analyze
 3. Groq AI analyzes the lead
 4. Lead stored in Google Sheets
 5. Email notification sent via Gmail
+
+## Demo
+🎥 [Watch Demo Video](https://www.loom.com/share/85e9587e012344cea49f995173eec7a3)
 =======
 # lead-generation-system
 >>>>>>> 644738896655a9ea3345fb313e2ccf79941fe486
